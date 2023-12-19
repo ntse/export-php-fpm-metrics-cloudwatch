@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -146,38 +147,41 @@ func retrievePhpFpmStats() PHPFPMStatus {
 	return response
 }
 
-// Retrieve instance ID from metadata endpoint. If we can't retrieve it, we'll use a default value which is useful for testing.
+// Retrieve instance ID from metadata endpoint. If we can't retrieve it, we'll return "NOT_SET" and log an error message.
 func retrieveInstanceId() string {
-	instanceId := "i-0000000000fffffff"
-	infoEndpoint := "http://169.254.169.254/latest/meta-data/instance-id"
+	instanceId := "NOT_SET"
+	metadataUrl := os.Getenv("ECS_CONTAINER_METADATA_URI_V4")
+	infoEndpoint := metadataUrl + "/latest/meta-data/instance-id"
 
 	request, err := http.NewRequest("GET", infoEndpoint, nil)
-
 	if err != nil {
 		log.Printf("Error creating request: %v. Defaulting to %v", err, instanceId)
+		return instanceId
 	}
 
 	request.Header.Set("X-Aws-Ec2-Metadata-Token-Ttl-Seconds", "21600")
 
-	client := &http.Client{
-		Timeout: 1 * time.Second,
-	}
+	client := &http.Client{}
 	response, err := client.Do(request)
-
 	if err != nil {
 		log.Printf("Error retrieving instance ID: %v. Defaulting to %v", err, instanceId)
+		return instanceId
 	}
+
+	defer response.Body.Close()
 
 	body, err := io.ReadAll(response.Body)
-
 	if err != nil {
 		log.Printf("Error reading response body: %v. Defaulting to %v", err, instanceId)
-	} else if response.StatusCode != 200 {
-		log.Printf("Received non-200 response from meta-data URL: %v. Defaulting to %v", response.StatusCode, instanceId)
-	} else {
-		instanceId = string(body)
+		return instanceId
 	}
 
+	if response.StatusCode != 200 {
+		log.Printf("Received non-200 response from meta-data URL: %v. Defaulting to %v", response.StatusCode, instanceId)
+		return instanceId
+	}
+
+	instanceId = string(body)
 	return instanceId
 }
 
