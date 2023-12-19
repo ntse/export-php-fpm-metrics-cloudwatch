@@ -6,7 +6,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main . && \
 
 FROM scratch
 COPY --from=builder /src/main /app/main
-COPY --from=certs /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /etc/passwd /etc/passwd
 
 USER appuser
