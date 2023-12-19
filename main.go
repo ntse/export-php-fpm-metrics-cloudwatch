@@ -150,7 +150,7 @@ func retrievePhpFpmStats() PHPFPMStatus {
 // Retrieve instance ID from metadata endpoint. If we can't retrieve it, we'll return "NOT_SET" and log an error message.
 func retrieveInstanceId() string {
 	instanceId := "NOT_SET"
-	metadataUrl := os.Getenv("ECS_CONTAINER_METADATA_URI_V4")
+	metadataUrl := os.Getenv("METADATA_LINK_LOCAL_ADDRESS")
 	infoEndpoint := metadataUrl + "/latest/meta-data/instance-id"
 
 	request, err := http.NewRequest("GET", infoEndpoint, nil)
