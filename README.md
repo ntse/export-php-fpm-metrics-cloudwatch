@@ -1,0 +1,1 @@
+This is a basic script that will export PHP-FPM stats to AWS CloudWatch from an ECS conntainer. It is designed to be run as a sidecar container in an ECS task definition.
