@@ -55,7 +55,7 @@ type PHPFPMProcess struct {
 }
 
 // Export metrics to CloudWatch. If we can't export them, we'll log an error.
-func exportToCloudWatch(response PHPFPMStatus, InstanceId string) {
+func exportToCloudWatch(response PHPFPMStatus, ServiceName string) {
 
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
@@ -77,8 +77,8 @@ func exportToCloudWatch(response PHPFPMStatus, InstanceId string) {
 				Value:      aws.Float64(float64(response.ListenQueue)),
 				Dimensions: []*cloudwatch.Dimension{
 					&cloudwatch.Dimension{
-						Name:  aws.String("InstanceId"),
-						Value: aws.String(InstanceId),
+						Name:  aws.String("ServiceName"),
+						Value: aws.String(ServiceName),
 					},
 				},
 			},
@@ -88,8 +88,8 @@ func exportToCloudWatch(response PHPFPMStatus, InstanceId string) {
 				Value:      aws.Float64(float64(response.ActiveProcesses)),
 				Dimensions: []*cloudwatch.Dimension{
 					&cloudwatch.Dimension{
-						Name:  aws.String("InstanceId"),
-						Value: aws.String(InstanceId),
+						Name:  aws.String("ServiceName"),
+						Value: aws.String(ServiceName),
 					},
 				},
 			},
@@ -99,8 +99,8 @@ func exportToCloudWatch(response PHPFPMStatus, InstanceId string) {
 				Value:      aws.Float64(float64(response.MaxListenQueue)),
 				Dimensions: []*cloudwatch.Dimension{
 					&cloudwatch.Dimension{
-						Name:  aws.String("InstanceId"),
-						Value: aws.String(InstanceId),
+						Name:  aws.String("ServiceName"),
+						Value: aws.String(ServiceName),
 					},
 				},
 			},
@@ -147,16 +147,16 @@ func retrievePhpFpmStats() PHPFPMStatus {
 	return response
 }
 
-// Retrieve instance ID from metadata endpoint. If we can't retrieve it, we'll return "NOT_SET" and log an error message.
-func retrieveInstanceId() string {
-	instanceId := "NOT_SET"
-	metadataUrl := os.Getenv("METADATA_LINK_LOCAL_ADDRESS")
+// Retrieve service name of the ECS task from metadata endpoint. If we can't retrieve it, we'll return "NOT_SET" and log an error message.
+func retrieveServiceName() string {
+	serviceName := "NOT_SET"
+	metadataUrl := os.Getenv("ECS_CONTAINER_METADATA_URI_V4")
 	infoEndpoint := metadataUrl + "/latest/meta-data/instance-id"
 
 	request, err := http.NewRequest("GET", infoEndpoint, nil)
 	if err != nil {
-		log.Printf("Error creating request: %v. Defaulting to %v", err, instanceId)
-		return instanceId
+		log.Printf("Error creating request: %v. Defaulting to %v", err, serviceName)
+		return serviceName
 	}
 
 	request.Header.Set("X-Aws-Ec2-Metadata-Token-Ttl-Seconds", "21600")
@@ -164,36 +164,35 @@ func retrieveInstanceId() string {
 	client := &http.Client{}
 	response, err := client.Do(request)
 	if err != nil {
-		log.Printf("Error retrieving instance ID: %v. Defaulting to %v", err, instanceId)
-		return instanceId
+		log.Printf("Error retrieving instance ID: %v. Defaulting to %v", err, serviceName)
+		return serviceName
 	}
 
 	defer response.Body.Close()
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		log.Printf("Error reading response body: %v. Defaulting to %v", err, instanceId)
-		return instanceId
+		log.Printf("Error reading response body: %v. Defaulting to %v", err, serviceName)
+		return serviceName
 	}
 
 	if response.StatusCode != 200 {
-		log.Printf("Received non-200 response from meta-data URL: %v. Defaulting to %v", response.StatusCode, instanceId)
-		return instanceId
+		log.Printf("Received non-200 response from meta-data URL: %v. Defaulting to %v", response.StatusCode, serviceName)
+		return serviceName
 	}
 
-	instanceId = string(body)
-	return instanceId
+	serviceName = string(body)
+	return serviceName
 }
 
 func main() {
 
-	// Retrieve instance ID from metadata endpoint
-	InstanceId := retrieveInstanceId()
+	ServiceName := retrieveServiceName()
 
 	for {
 		// Retrieve stats from PHP-FPM and export them to CloudWatch
 		response := retrievePhpFpmStats()
-		exportToCloudWatch(response, InstanceId)
+		exportToCloudWatch(response, ServiceName)
 
 		time.Sleep(30 * time.Second)
 	}
