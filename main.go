@@ -151,19 +151,31 @@ func retrieveInstanceId() string {
 	instanceId := "i-0000000000fffffff"
 	infoEndpoint := "http://169.254.169.254/latest/meta-data/instance-id"
 
-	client := http.Client{
-		Timeout: 1 * time.Second,
+	request, err := http.NewRequest("GET", infoEndpoint, nil)
+
+	if err != nil {
+		log.Printf("Error creating request: %v. Defaulting to %v", err, instanceId)
 	}
 
-	req, err := client.Get(infoEndpoint)
+	request.Header.Set("X-Aws-Ec2-Metadata-Token-Ttl-Seconds", "21600")
+
+	client := &http.Client{
+		Timeout: 1 * time.Second,
+	}
+	response, err := client.Do(request)
+
 	if err != nil {
 		log.Printf("Error retrieving instance ID: %v. Defaulting to %v", err, instanceId)
-	} else {
-		body, _ := io.ReadAll(req.Body)
+	}
 
-		if req.StatusCode == 200 {
-			instanceId = string(body)
-		}
+	body, err := io.ReadAll(response.Body)
+
+	if err != nil {
+		log.Printf("Error reading response body: %v. Defaulting to %v", err, instanceId)
+	} else if response.StatusCode != 200 {
+		log.Printf("Received non-200 response from meta-data URL: %v. Defaulting to %v", response.StatusCode, instanceId)
+	} else {
+		instanceId = string(body)
 	}
 
 	return instanceId
