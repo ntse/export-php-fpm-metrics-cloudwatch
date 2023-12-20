@@ -150,7 +150,7 @@ func retrieveServiceName() string {
 	client := &http.Client{}
 	response, err := client.Do(request)
 	if err != nil {
-		log.Printf("Error retrieving instance ID: %v. Defaulting to %v", err, serviceName)
+		log.Printf("Error retrieving service name: %v. Defaulting to %v", err, serviceName)
 		return serviceName
 	}
 
@@ -178,6 +178,7 @@ func retrieveServiceName() string {
 func main() {
 
 	ServiceName := retrieveServiceName()
+	log.Printf("Service name: %v", ServiceName)
 
 	for {
 		// Retrieve stats from PHP-FPM and export them to CloudWatch
