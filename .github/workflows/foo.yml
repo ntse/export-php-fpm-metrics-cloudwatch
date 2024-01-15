@@ -29,5 +29,6 @@ jobs:
       run: |
         ls -la /home/runner/work/export-php-fpm-metrics-cloudwatch/export-php-fpm-metrics-cloudwatch/_ghbranchnameaction/
         pwd
-        apt install -y tree
+        sudo apt install -y tree
         tree -a ${{github.workspace}}
+        ls -la ${{github.workspace}}
