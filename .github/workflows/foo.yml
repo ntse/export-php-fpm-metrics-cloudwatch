@@ -19,23 +19,17 @@ jobs:
     - name: "Foo"
       runs-on: ubuntu-latest
       steps:
-        # - name: "Checkout"
-        #   uses: actions/checkout@v4
-        #   with:
-        #     repository: "ministryofjustice/opg-github-actions"
-        #     ref: "5adf4178379b79db1d0a463833badde786401a03"
-        #     path: "opg-github-actions"
-        - name: semver tag
-          id: semver_tag
-          uses: ministryofjustice/opg-github-actions/.github/actions/semver-tag@cea1a79f360d3cb180a84a895893b3460d135596
-          with:
-            github_token: ${{ secrets.GITHUB_TOKEN }}
-            with_v: true
+      - name: semver tag
+        id: semver_tag
+        uses: ministryofjustice/opg-github-actions/.github/actions/semver-tag@cea1a79f360d3cb180a84a895893b3460d135596
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          with_v: true
 
-        - name: "echo stuff"
-          if: always()
-          run: |
-            ls -la /home/runner/work/export-php-fpm-metrics-cloudwatch/export-php-fpm-metrics-cloudwatch/_ghbranchnameaction/
-            pwd
-            apt install -y tree
-            tree -a ${{github.workspace}}
+      - name: "echo stuff"
+        if: always()
+        run: |
+          ls -la /home/runner/work/export-php-fpm-metrics-cloudwatch/export-php-fpm-metrics-cloudwatch/_ghbranchnameaction/
+          pwd
+          apt install -y tree
+          tree -a ${{github.workspace}}
