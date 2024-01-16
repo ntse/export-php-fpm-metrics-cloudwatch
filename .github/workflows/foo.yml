@@ -19,7 +19,7 @@ jobs:
     steps:
     - name: semver tag
       id: semver_tag
-      uses: ministryofjustice/opg-github-actions/.github/actions/semver-tag@1f8fc17d658d17f3bd8f3e066e5a936d131af2cf
+      uses: ministryofjustice/opg-github-actions/.github/actions/semver-tag@cb5c303f44510612cff2044affe4fa79558c66dc
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         with_v: true
