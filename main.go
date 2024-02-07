@@ -44,7 +44,14 @@ func GetContainerServiceName() (string, error) {
 	defer resp.Body.Close()
 
 	var metadataResponse MetadataResponse
-	err = json.NewDecoder(resp.Body).Decode(&metadataResponse)
+
+	body, err := ioutil.ReadAll(resp.Body)
+
+	err = json.Unmarshal(body, &metadataResponse)
+
+	// Print the struct to see the response
+	fmt.Printf("%+v\n", metadataResponse)
+
 	if err != nil {
 		return "", err
 	}
@@ -132,7 +139,7 @@ func GetPHPFPMStatus() (PHPFPMStatus, error) {
 		log.Println("err:", err)
 	}
 
-	// Marshal the JSON response into a PHPFPMStatus struct
+	// Unmarshal the JSON response into a PHPFPMStatus struct
 	var stats PHPFPMStatus
 	err = json.Unmarshal(content, &stats)
 	if err != nil {
