@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 
@@ -10,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cloudwatch"
 	"github.com/aws/aws-sdk-go/service/cloudwatch/cloudwatchiface"
+	fcgiclient "github.com/tomasen/fcgi_client"
 )
 
 // MetadataResponse represents the JSON response from the ECS metadata endpoint.
@@ -26,7 +29,6 @@ type PHPFPMStatus struct {
 	ListenQueue     int64 `json:"listen queue"`
 	ActiveProcesses int64 `json:"active processes"`
 	SlowRequests    int64 `json:"slow requests"`
-	Yo              int64 `json:"yo"`
 }
 
 // GetContainerServiceName retrieves the name of the container service.
@@ -50,8 +52,12 @@ func GetContainerServiceName() (string, error) {
 	return metadataResponse.ServiceName, nil
 }
 
+// ExportToCloudwatch exports PHP-FPM metrics to CloudWatch.
+// It takes a CloudWatch service client, PHPFPMStatus struct, and service name as input.
+// It creates MetricDatum objects for ListenQueue, ActiveProcesses, and SlowRequests metrics,
+// and sends them to CloudWatch using the PutMetricData API.
+// It returns the PutMetricDataOutput and any error encountered.
 func ExportToCloudwatch(svc cloudwatchiface.CloudWatchAPI, phpfpmstatus PHPFPMStatus, servicename string) (*cloudwatch.PutMetricDataOutput, error) {
-
 	PutMetricDataOutput, err := svc.PutMetricData(&cloudwatch.PutMetricDataInput{
 		Namespace: aws.String("Monitoring/PHP-FPM"),
 		MetricData: []*cloudwatch.MetricDatum{
@@ -96,9 +102,44 @@ func ExportToCloudwatch(svc cloudwatchiface.CloudWatchAPI, phpfpmstatus PHPFPMSt
 		return PutMetricDataOutput, err
 	}
 
-	fmt.Printf("%+v\n", PutMetricDataOutput)
-
 	return PutMetricDataOutput, nil
+}
+
+// GetPHPFPMStatus retrieves the PHP-FPM status by making a request to the /status endpoint.
+// It returns a PHPFPMStatus struct containing the parsed response and an error if any.
+func GetPHPFPMStatus() (PHPFPMStatus, error) {
+	env := make(map[string]string)
+	env["SCRIPT_FILENAME"] = "/status"
+	env["SCRIPT_NAME"] = "/status"
+	env["SERVER_SOFTWARE"] = "go / fcgiclient"
+	env["REMOTE_ADDR"] = "127.0.0.1"
+	env["QUERY_STRING"] = "json&full"
+
+	fcgi, err := fcgiclient.Dial("tcp", "127.0.0.1:9000")
+
+	if err != nil {
+		log.Println("err:", err)
+	}
+
+	resp, err := fcgi.Get(env)
+	if err != nil {
+		log.Println("err:", err)
+	}
+
+	content, err := ioutil.ReadAll(resp.Body)
+
+	if err != nil {
+		log.Println("err:", err)
+	}
+
+	// Marshal the JSON response into a PHPFPMStatus struct
+	var stats PHPFPMStatus
+	err = json.Unmarshal(content, &stats)
+	if err != nil {
+		return PHPFPMStatus{}, err
+	}
+
+	return stats, nil
 }
 
 func main() {
@@ -108,10 +149,17 @@ func main() {
 	svc := cloudwatch.New(sess)
 
 	svc_name, err := GetContainerServiceName()
+
 	if err != nil {
 		fmt.Println("Error getting service name:", err.Error())
 		return
 	}
 
-	ExportToCloudwatch(svc, PHPFPMStatus{}, svc_name)
+	stats, err := GetPHPFPMStatus()
+	if err != nil {
+		fmt.Println("Error getting PHP-FPM status:", err.Error())
+		return
+	}
+
+	ExportToCloudwatch(svc, stats, svc_name)
 }

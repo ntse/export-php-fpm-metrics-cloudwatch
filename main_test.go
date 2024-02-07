@@ -26,7 +26,6 @@ func TestExportToCloudwatch(t *testing.T) {
 		ListenQueue:     10,
 		ActiveProcesses: 15,
 		SlowRequests:    20,
-		Yo:              30,
 	}
 
 	_, err := ExportToCloudwatch(mockSvc, mockPHPFPMStatus, "test-service")
