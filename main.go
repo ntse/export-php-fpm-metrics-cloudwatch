@@ -16,7 +16,7 @@ import (
 )
 
 // MetadataResponse represents the JSON response from the ECS metadata endpoint.
-// See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4.html for more information.
+// See https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-metadata-endpoint-v4-fargate.html for more information.
 type MetadataResponse struct {
 	Cluster     string `json:"Cluster"`
 	ServiceName string `json:"ServiceName"`
@@ -155,11 +155,17 @@ func main() {
 	}))
 	svc := cloudwatch.New(sess)
 
-	svc_name, err := GetContainerServiceName()
+	var svc_name string
+	var err error
 
-	if err != nil {
-		fmt.Println("Error getting service name:", err.Error())
-		return
+	if os.Getenv("APPLICATION_NAME") == "" {
+		svc_name, err = GetContainerServiceName()
+		if err != nil {
+			fmt.Println("Error getting service name:", err.Error())
+			return
+		}
+	} else {
+		svc_name = os.Getenv("APPLICATION_NAME")
 	}
 
 	stats, err := GetPHPFPMStatus()
