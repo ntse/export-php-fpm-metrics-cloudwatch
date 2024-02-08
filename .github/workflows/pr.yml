@@ -13,6 +13,22 @@ jobs:
         with:
           ref: main
           fetch-depth: '0'
+      - name: Run static analysis with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          scanners: 'vuln,secret,config'
+          exit-code: '1'
+          github-pat: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload SARIF file to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: trivy-report.sarif  
       - uses: actions/setup-go@v4
         with:
           go-version: stable
@@ -27,20 +43,6 @@ jobs:
         with:
           push: false
           tags: 'php-fpm-stats-exporter:latest'
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'php-fpm-stats-exporter:latest'
-          format: 'sarif'
-          exit-code: '1'
-          ignore-unfixed: true
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
-          output: 'trivy-report.sarif'
-      - name: Upload SARIF file to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
-        with:
-          sarif_file: trivy-report.sarif
       - name: End workflow
         run: echo "Workflow finished"
         id: end
