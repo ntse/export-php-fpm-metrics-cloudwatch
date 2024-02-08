@@ -50,9 +50,6 @@ func GetContainerServiceName() (string, error) {
 
 	err = json.Unmarshal(body, &metadataResponse)
 
-	// Print the struct to see the response
-	fmt.Printf("%+v\n", metadataResponse)
-
 	if err != nil {
 		return "", err
 	}
@@ -116,6 +113,17 @@ func ExportToCloudwatch(svc cloudwatchiface.CloudWatchAPI, phpfpmstatus PHPFPMSt
 // GetPHPFPMStatus retrieves the PHP-FPM status by making a request to the /status endpoint.
 // It returns a PHPFPMStatus struct containing the parsed response and an error if any.
 func GetPHPFPMStatus() (PHPFPMStatus, error) {
+
+	port := os.Getenv("PHP_FPM_PORT")
+	if port == "" {
+		port = "9000"
+	}
+
+	host := os.Getenv("PHP_FPM_HOST")
+	if host == "" {
+		host = "127.0.0.1"
+	}
+
 	env := make(map[string]string)
 	env["SCRIPT_FILENAME"] = "/status"
 	env["SCRIPT_NAME"] = "/status"
@@ -123,7 +131,7 @@ func GetPHPFPMStatus() (PHPFPMStatus, error) {
 	env["REMOTE_ADDR"] = "127.0.0.1"
 	env["QUERY_STRING"] = "json&full"
 
-	fcgi, err := fcgiclient.Dial("tcp", "127.0.0.1:9000")
+	fcgi, err := fcgiclient.Dial("tcp", fmt.Sprintf("%s:%s", host, port))
 
 	if err != nil {
 		log.Println("err:", err)
