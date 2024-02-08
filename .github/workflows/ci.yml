@@ -49,7 +49,7 @@ jobs:
         with:
           image-ref: ntse/export-php-metrics:${{ steps.tag.outputs.new_tag }}
           format: 'sarif'
-          output: 'trivy-report.sarif'
+          output: './trivy-report.sarif'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
@@ -57,4 +57,4 @@ jobs:
       - name: Upload SARIF report
         uses: github/codeql-action/upload-sarif@v2
         with:
-          sarif_file: trivy-report.sarif
+          sarif_file: ./trivy-report.sarif
