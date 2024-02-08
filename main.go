@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -158,21 +159,25 @@ func main() {
 	var svc_name string
 	var err error
 
-	if os.Getenv("APPLICATION_NAME") == "" {
-		svc_name, err = GetContainerServiceName()
+	for {
+		if os.Getenv("APPLICATION_NAME") == "" {
+			svc_name, err = GetContainerServiceName()
+			if err != nil {
+				fmt.Println("Error getting service name:", err.Error())
+				return
+			}
+		} else {
+			svc_name = os.Getenv("APPLICATION_NAME")
+		}
+
+		stats, err := GetPHPFPMStatus()
 		if err != nil {
-			fmt.Println("Error getting service name:", err.Error())
+			fmt.Println("Error getting PHP-FPM status:", err.Error())
 			return
 		}
-	} else {
-		svc_name = os.Getenv("APPLICATION_NAME")
-	}
 
-	stats, err := GetPHPFPMStatus()
-	if err != nil {
-		fmt.Println("Error getting PHP-FPM status:", err.Error())
-		return
-	}
+		ExportToCloudwatch(svc, stats, svc_name)
 
-	ExportToCloudwatch(svc, stats, svc_name)
+		time.Sleep(1 * time.Minute)
+	}
 }
