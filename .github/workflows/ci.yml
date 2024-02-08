@@ -44,3 +44,17 @@ jobs:
           tags: >-
             ntse/export-php-metrics:${{ steps.tag.outputs.new_tag }},
             ntse/export-php-metrics:latest
+      - name: Image scan with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ntse/export-php-metrics:${{ steps.tag.outputs.new_tag }}
+          format: 'sarif'
+          output: 'trivy-report.sarif'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+          github-pat: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload SARIF report
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: trivy-report.sarif
